@@ -1,7 +1,7 @@
 local Lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/neaxusxgod-png/INS-ui/main/uilib.min.lua"))() or INSui
 
 local gameVerification = game.GameId
-print("Game ID: "..gameVerification)
+print("Game ID: "..tostring(gameVerification))
 
 if gameVerification ~= 3730079862 then return end
 
