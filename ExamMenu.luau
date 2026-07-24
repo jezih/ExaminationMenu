@@ -72,9 +72,11 @@ UI.AddTab("Examination", function(tab)
         "sound_presets",
         "Preset Sounds",
         {
-            "Cough",
-            "Example 1",
-            "Example 2"
+            "Skype Call",
+            "Wet Fart",
+            "L4D2 Hunter Scream",
+            "Phone Call",
+            "Call Me a GOODBOY"
         },
         0,
         function(index, text)
