@@ -1,11 +1,9 @@
 local Lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/neaxusxgod-png/INS-ui/main/uilib.min.lua"))() or INSui
 
-local game = game.GameId
+local gameVerification = game.GameId
 print("Game ID: "..game)
 
-if game ~= 3730079862 then
-	notify("WRONG GAME", "ERROR", 2)
-end
+if ggameVerification ~= 3730079862 then return end
 
 local win = Lib:CreateWindow({ 
     title = "Examination", 
