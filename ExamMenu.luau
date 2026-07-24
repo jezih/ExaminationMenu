@@ -49,7 +49,26 @@ local soundPresets = {
     ["Wet Fart"] = "110012848572836",
     ["L4D2 Hunter Scream"] = "139005512098246",
     ["Phone Call"] = "139364267074866",
-    ["Call Me a GOODBOY"] = "137328940118239"
+    ["Call Me a GOODBOY"] = "137328940118239",
+    ["Burp"] = "98335542425016",
+    ["Bark Fart"] = "119447356569253",
+    ["You hitting that spot"] = "124805954940888",
+    ["Doorbell"] = "99311007530211",
+    ["SMB Get the door"] = "111008640023286",
+    ["YES KING"] = "89159253290187",
+    ["Jellybeans"] = "111533356761353",
+    ["FAHHH"] = "120385128207517",
+    ["IM SPONGEBOB"] = "91754532443101",
+    ["float"] = "9061674082",
+    ["foghorn"] = "130802578468469",
+    ["random sound"] = "15379495916",
+    ["SpringtrapLaugh"] = "105656677298662",
+    ["MAMBO"] = "95010515443370",
+    ["random bs go"] = "86197280562656",
+    ["Stalker Scream From Garry's Mod"] = "121393698511464",
+    ["I dont feel so good"] = "90558775084399",
+    ["J*bs?"] = "115503829240813"
+
 }
 
 
@@ -76,7 +95,25 @@ UI.AddTab("Examination", function(tab)
             "Wet Fart",
             "L4D2 Hunter Scream",
             "Phone Call",
-            "Call Me a GOODBOY"
+            "Call Me a GOODBOY",
+            "Burp",
+            "Bark Fart",
+            "You hitting that spot",
+            "Doorbell",
+            "SMB Get the door",
+            "YES KING",
+            "Jellybeans",
+            "FAHHH",
+            "IM SPONGEBOB",
+            "float",
+            "foghorn",
+            "random sound",
+            "SpringtrapLaugh",
+            "MAMBO",
+            "random bs go",
+            "Stalker Scream from Garry's Mod",
+            "I dont feel so good",
+            "J*bs?"
         },
         0,
         function(index, text)
