@@ -280,11 +280,7 @@ UI.AddTab("Examination", function(tab)
 	
 	local info = tab:Section("Information", "Right")
 
-    infoVersion = info:Text(
-    "info_version",
-    "Version",
-    "1.2 | EXAMINATION"
-    )   
+    infoVersion = info:Text("v1.2 | EXAMINATION")
 	infoTarget = info:InputText(
         "info_target",
         "Target",
