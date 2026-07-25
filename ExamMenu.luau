@@ -1,6 +1,14 @@
 notify("The tab can be found in the UI [ INSERT ]", "<3", 5)
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+
+local infoVersion
+local infoTarget
+local infoSound
+local infoPlayers
+local infoStatus
 
 local GAME_ID = 3730079862
 
@@ -72,9 +80,51 @@ local soundPresets = {
 
 UI.AddTab("Examination", function(tab)
 
+    task.spawn(function()
+        while true do
+    
+            if infoTarget then
+                infoTarget:SetValue(
+                    selectedPlayer and selectedPlayer.Name or "None"
+                )
+            end
+    
+    
+            if infoSound then
+                infoSound:SetValue(
+                    soundId ~= "" and soundId or "None"
+                )
+            end
+    
+    
+            if infoPlayers then
+                infoPlayers:SetValue(
+                    tostring(#Players:GetPlayers())
+                )
+            end
+    
+    
+            if infoStatus then
+    
+                local status = "Waiting"
+    
+                if selectedPlayer and soundId ~= "" then
+                    status = "Ready"
+                elseif selectedPlayer then
+                    status = "Select Sound"
+                elseif soundId ~= "" then
+                    status = "Select Player"
+                end
+    
+                infoStatus:SetValue(status)
+            end
+    
+    
+            task.wait(0.5)
+        end
+    end)
+
     local sound = tab:Section("Sound Player", "Left")
-
-
     local soundInput = sound:InputText(
         "sound_id",
         "Sound ID",
@@ -227,5 +277,32 @@ UI.AddTab("Examination", function(tab)
         )
 
     end)
+	
+	local info = tab:Section("Information", "Right")
 
+    infoVersion = info:InputText(
+    "info_version",
+    "Version",
+    "1.2 | EXAMINATION"
+    )   
+	infoTarget = info:InputText(
+        "info_target",
+        "Target",
+        "None"
+    )
+    infoSound = info:InputText(
+        "info_sound",
+        "Sound ID",
+        "None"
+    )
+    infoPlayers = info:InputText(
+        "info_players",
+        "Players",
+        "0"
+    )
+    infoStatus = info:InputText(
+        "info_status",
+        "Status",
+        "Idle"
+    )
 end)
