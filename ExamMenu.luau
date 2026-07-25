@@ -278,24 +278,29 @@ UI.AddTab("Examination", function(tab)
 
     end)
 	
-	local info = tab:Section("Information", "Right")
+    local info = tab:Section("Information", "Right")
 
-    infoVersion = info:Text("v1.2 | EXAMINATION")
-	infoTarget = info:InputText(
+    info:Text("EXAMINATION")
+    info:Text("Version: v1.2")
+    
+    infoTarget = info:InputText(
         "info_target",
         "Target",
         "None"
     )
+    
     infoSound = info:InputText(
         "info_sound",
         "Sound ID",
         "None"
     )
+    
     infoPlayers = info:InputText(
         "info_players",
         "Players",
         "0"
     )
+    
     infoStatus = info:InputText(
         "info_status",
         "Status",
