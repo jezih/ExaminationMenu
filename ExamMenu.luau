@@ -361,8 +361,6 @@ UI.AddTab("Examination", function(tab)
 
     end)
 
-	
-    --[[
     local nsgiver = tab:Section("MUST HAVE THE BADGES[I THINK]", "Right")
 
     nsgiver:Button("Gain the Nightstalker 'Regalia'", function()
@@ -371,7 +369,7 @@ UI.AddTab("Examination", function(tab)
 
     nsgiver:Button("Gain the Nightstalker 'Default'", function()
         game.ReplicatedStorage.Events.NSVariantSelect:FireServer("Default")
-    end)]]
+    end)
 
 
 
