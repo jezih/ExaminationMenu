@@ -2,9 +2,7 @@ notify("The tab can be found in the UI [ INSERT ]", "<3", 5)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
 
-local infoVersion
 local infoTarget
 local infoSound
 local infoPlayers
@@ -71,10 +69,74 @@ local soundPresets = {
     ["SpringtrapLaugh"] = "105656677298662",
     ["MAMBO"] = "95010515443370",
     ["random bs go"] = "86197280562656",
-    ["Stalker Scream From Garry's Mod"] = "121393698511464",
+    ["Stalker"] = "121393698511464",
     ["I dont feel so good"] = "90558775084399",
-    ["J*bs?"] = "115503829240813"
+    ["J*bs?"] = "115503829240813",
+    ["Metal Pipe"] = "139668725303708",
+    ["Discord PING"] = "135272730546427",
+    ["Discord JOIN"] = "130010281028004",
+    ["Discord LEAVE"] = "96334570383985",
+    ["Discord CALL"] = "4814018992",
+    ["Whatsapp Whistle"] = "116421256176747",
+    ["IPHONE RINGTONE"] = "589932864",
+    ["Nokia Ringtone"] = "109992720088622",
+    ["miku calling"] = "8247775255",
+    ["miku"] = "117698935878433",
+    ["goku?"] = "5612259294", 
+    ["JESUS IS HERE"] = "107601479110503"
 
+}
+
+local presetCategories = {
+
+    ["Farts and Burps"] = {
+        "Wet Fart",
+        "Bark Fart",
+        "Burp",
+        "Jellybeans",
+        "FAHHH",
+        "IM SPONGEBOB",
+        "Metal Pipe",
+        "random bs go"
+    },
+
+    ["Notifications"] = {
+        "Discord PING",
+        "Discord JOIN",
+        "Discord LEAVE",
+        "Discord CALL",
+        "miku calling",
+        "Skype Call",
+        "Phone Call",
+        "Whatsapp Whistle",
+        "IPHONE RINGTONE",
+        "Nokia Ringtone"
+    },
+
+    ["Memes"] = {
+        "Call Me a GOODBOY",
+        "JESUS IS HERE",
+        "MAMBO",
+        "Doorbell",
+        "SMB Get the door",
+        "float",
+        "foghorn",
+        "random sound",
+        "miku",
+        "goku?"
+    },
+
+    ["Games"] = {
+        "L4D2 Hunter Scream",
+        "SpringtrapLaugh",
+        "J*bs?",
+        "I dont feel so good",
+        "Stalker"
+    },
+
+	["Misc"] = {
+        "Nothing yet."
+	}
 }
 
 
@@ -133,47 +195,69 @@ UI.AddTab("Examination", function(tab)
             soundId = cleanSoundId(text)
         end
     )
+    local categoryNames = {}
+
+    for category, _ in pairs(presetCategories) do
+        table.insert(categoryNames, category)
+    end
+    
+    table.sort(categoryNames)
+    
+    
+    local currentCategory = "Farts and Burps"
+    local presetCombo
 
 
+    local function updatePresetList()
+
+        if not presetCombo then
+            return
+        end
+    
+        presetCombo:Clear()
+    
+        local presets = presetCategories[currentCategory]
+    
+        if not presets then
+            return
+        end
+    
+        for _, preset in ipairs(presets) do
+            presetCombo:Add(preset)
+        end
+    end
+    
+    
     sound:Combo(
+        "sound_category",
+        "Category",
+        categoryNames,
+        0,
+        function(index, category)
+
+            currentCategory = category
+            updatePresetList()
+        
+        end
+    )
+    
+    
+    presetCombo = sound:Combo(
         "sound_presets",
         "Preset Sounds",
-        {
-            "Skype Call",
-            "Wet Fart",
-            "L4D2 Hunter Scream",
-            "Phone Call",
-            "Call Me a GOODBOY",
-            "Burp",
-            "Bark Fart",
-            "Doorbell",
-            "SMB Get the door",
-            "Jellybeans",
-            "FAHHH",
-            "IM SPONGEBOB",
-            "float",
-            "foghorn",
-            "random sound",
-            "SpringtrapLaugh",
-            "MAMBO",
-            "random bs go",
-            "Stalker Scream from Garry's Mod",
-            "I dont feel so good",
-            "J*bs?"
-        },
+        presetCategories["Farts and Burps"],
         0,
         function(index, text)
-
+    
             local id = soundPresets[text]
-
+    
             if id then
                 soundId = id
                 soundInput:SetValue(id)
             end
-
+    
         end
     )
-
 
     local playerCombo = sound:Combo(
         "target_player",
