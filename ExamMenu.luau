@@ -92,12 +92,7 @@ local presetCategories = {
     ["Farts and Burps"] = {
         "Wet Fart",
         "Bark Fart",
-        "Burp",
-        "Jellybeans",
-        "FAHHH",
-        "IM SPONGEBOB",
-        "Metal Pipe",
-        "random bs go"
+        "Burp"
     },
 
     ["Notifications"] = {
@@ -123,7 +118,9 @@ local presetCategories = {
         "foghorn",
         "random sound",
         "miku",
-        "goku?"
+        "goku?",
+        "FAHHH",
+        "Metal Pipe"
     },
 
     ["Games"] = {
@@ -135,7 +132,9 @@ local presetCategories = {
     },
 
 	["Misc"] = {
-        "Nothing yet."
+        "Jellybeans",
+        "IM SPONGEBOB",
+        "random bs go"
 	}
 }
 
