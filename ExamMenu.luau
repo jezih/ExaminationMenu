@@ -375,7 +375,7 @@ UI.AddTab("Examination", function(tab)
     local info = tab:Section("Information", "Right")
 
     info:Text("EXAMINATION")
-    info:Text("Version: v1.2")
+    info:Text("Version: v1.4")
     
     infoTarget = info:InputText(
         "info_target",
