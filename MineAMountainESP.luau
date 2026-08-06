@@ -191,4 +191,4 @@ local function stop()
 end
 
 _G.oreEsp = { stop = stop }
-notify("Ore ESP, G TO TOGGLE", 3)
+notify("Ore ESP, G TO TOGGLE", "Main A Mountain ESP", 4)
