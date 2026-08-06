@@ -26,56 +26,316 @@ end
 
 local lp = Players.LocalPlayer
 
-if _G.oreEsp then
-    _G.oreEsp.stop()
-    _G.oreEsp = nil
-    print("ore ESP off")
-end
-if _G.boulderEsp then
-    _G.boulderEsp.stop()
-    _G.boulderEsp = nil
-    print("boulder ESP off")
+if _G.oreEsp then _G.oreEsp.stop(); _G.oreEsp = nil end
+if _G.boulderEsp then _G.boulderEsp.stop(); _G.boulderEsp = nil end
+if _G.espUI then _G.espUI.stop(); _G.espUI = nil end
+
+-- ============================================================
+-- MY UI LIB (Drawing-based): window + toggle + dropdown
+-- ============================================================
+local DrawUI = {}
+DrawUI.controls = {}
+DrawUI.allObjs = {}
+DrawUI.w = 230
+DrawUI.x = 0
+DrawUI.y = 0
+DrawUI.titleText = "MENU"
+DrawUI.visible = true
+DrawUI.dirty = true
+DrawUI.rows = {}
+DrawUI.drag = nil
+DrawUI.running = true
+local ROW_H = 22
+local TITLE_H = 26
+local PAD = 6
+
+local function newSquare(color, transparency, filled)
+    local d = Drawing.new("Square")
+    d.Color = color or Color3.fromRGB(24, 24, 24)
+    d.Transparency = transparency or 0
+    d.Filled = filled ~= false
+    d.Thickness = 1
+    d.Visible = false
+    DrawUI.allObjs[#DrawUI.allObjs + 1] = d
+    return d
 end
 
--- ===== CRYSTAL ESP (toggle: G) =====
+local function newText(txt, size, color, center)
+    local d = Drawing.new("Text")
+    d.Text = txt or ""
+    d.Size = size or 13
+    d.Color = color or Color3.fromRGB(235, 235, 235)
+    d.Center = center or false
+    d.Outline = true
+    d.Visible = false
+    DrawUI.allObjs[#DrawUI.allObjs + 1] = d
+    return d
+end
+
+function DrawUI.toggle(id, label, default)
+    local ctl = {
+        type = "toggle",
+        id = id,
+        label = label,
+        value = default and true or false,
+        rowBg = newSquare(Color3.fromRGB(32, 32, 32), 0, true),
+        labelTxt = newText(label, 13, Color3.fromRGB(230, 230, 230), false),
+        box = newSquare(Color3.fromRGB(110, 110, 110), 0, true),
+        stateTxt = newText("ON", 13, Color3.fromRGB(120, 255, 120), false),
+    }
+    DrawUI.controls[#DrawUI.controls + 1] = ctl
+    DrawUI.dirty = true
+    return ctl
+end
+
+function DrawUI.dropdown(id, label, options, defaultIdx)
+    local idx = 1
+    if defaultIdx and defaultIdx >= 1 and defaultIdx <= #options then idx = defaultIdx end
+    local ctl = {
+        type = "dropdown",
+        id = id,
+        label = label,
+        options = options,
+        value = idx,
+        open = false,
+        rowBg = newSquare(Color3.fromRGB(32, 32, 32), 0, true),
+        labelTxt = newText(label, 13, Color3.fromRGB(230, 230, 230), false),
+        selTxt = newText(options[idx], 13, Color3.fromRGB(255, 255, 255), false),
+        arrow = newText("v", 12, Color3.fromRGB(200, 200, 200), true),
+        optBgs = {},
+        optTexts = {},
+    }
+    for i = 1, #options do
+        ctl.optBgs[i] = newSquare(Color3.fromRGB(26, 26, 26), 0, true)
+        ctl.optTexts[i] = newText(options[i], 13, Color3.fromRGB(215, 215, 215), false)
+    end
+    DrawUI.controls[#DrawUI.controls + 1] = ctl
+    DrawUI.dirty = true
+    return ctl
+end
+
+function DrawUI.val(id, default)
+    for _, ctl in ipairs(DrawUI.controls) do
+        if ctl.id == id then return ctl.value end
+    end
+    return default
+end
+
+function DrawUI.option(id, defaultText)
+    for _, ctl in ipairs(DrawUI.controls) do
+        if ctl.id == id and ctl.type == "dropdown" then
+            return ctl.options[ctl.value] or defaultText
+        end
+    end
+    return defaultText
+end
+
+function DrawUI.set(id, v)
+    for _, ctl in ipairs(DrawUI.controls) do
+        if ctl.id == id then
+            if ctl.type == "toggle" then
+                ctl.value = v and true or false
+            elseif ctl.type == "dropdown" then
+                if type(v) == "number" and v >= 1 and v <= #ctl.options then ctl.value = v end
+            end
+            DrawUI.draw()
+            return
+        end
+    end
+end
+
+function DrawUI.draw()
+    for _, o in ipairs(DrawUI.allObjs) do o.Visible = false end
+    if not DrawUI.running or not DrawUI.bg then return end
+    if not DrawUI.visible then
+        DrawUI.reopenBg.Position = Vector2.new(DrawUI.x, DrawUI.y)
+        DrawUI.reopenBg.Size = Vector2.new(60, 18)
+        DrawUI.reopenBg.Visible = true
+        DrawUI.reopenBorder.Position = Vector2.new(DrawUI.x, DrawUI.y)
+        DrawUI.reopenBorder.Size = Vector2.new(60, 18)
+        DrawUI.reopenBorder.Visible = true
+        DrawUI.reopenTxt.Position = Vector2.new(DrawUI.x + 30, DrawUI.y + 9)
+        DrawUI.reopenTxt.Visible = true
+        DrawUI.rows = { { kind = "reopen", x = DrawUI.x, y = DrawUI.y, w = 60, h = 18 } }
+        DrawUI.dirty = false
+        return
+    end
+    local x, y, w = DrawUI.x, DrawUI.y, DrawUI.w
+    local rows = {}
+    DrawUI.bg.Position = Vector2.new(x, y)
+    DrawUI.bg.Size = Vector2.new(w, TITLE_H)
+    DrawUI.bg.Visible = true
+    DrawUI.title.Position = Vector2.new(x + w * 0.5, y + TITLE_H * 0.5)
+    DrawUI.title.Text = DrawUI.titleText
+    DrawUI.title.Visible = true
+    DrawUI.closeX.Position = Vector2.new(x + w - 14, y + TITLE_H * 0.5)
+    DrawUI.closeX.Visible = true
+    rows[#rows + 1] = { kind = "close", x = x + w - 26, y = y, w = 26, h = TITLE_H }
+    rows[#rows + 1] = { kind = "title", x = x, y = y, w = w - 26, h = TITLE_H }
+    y = y + TITLE_H
+    for _, ctl in ipairs(DrawUI.controls) do
+        if ctl.type == "toggle" then
+            ctl.rowBg.Position = Vector2.new(x, y)
+            ctl.rowBg.Size = Vector2.new(w, ROW_H)
+            ctl.rowBg.Visible = true
+            ctl.labelTxt.Position = Vector2.new(x + PAD + 4, y + ROW_H * 0.5 - 7)
+            ctl.labelTxt.Text = ctl.label
+            ctl.labelTxt.Visible = true
+            ctl.box.Position = Vector2.new(x + w - 30, y + ROW_H * 0.5 - 7)
+            ctl.box.Size = Vector2.new(14, 14)
+            ctl.box.Color = ctl.value and Color3.fromRGB(90, 220, 120) or Color3.fromRGB(110, 110, 110)
+            ctl.box.Filled = ctl.value
+            ctl.box.Visible = true
+            ctl.stateTxt.Text = ctl.value and "ON" or "OFF"
+            ctl.stateTxt.Color = ctl.value and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 110, 110)
+            ctl.stateTxt.Position = Vector2.new(x + w - 58, y + ROW_H * 0.5 - 7)
+            ctl.stateTxt.Visible = true
+            rows[#rows + 1] = { kind = "toggle", ctl = ctl, x = x, y = y, w = w, h = ROW_H }
+            y = y + ROW_H
+        else
+            ctl.rowBg.Position = Vector2.new(x, y)
+            ctl.rowBg.Size = Vector2.new(w, ROW_H)
+            ctl.rowBg.Visible = true
+            ctl.labelTxt.Position = Vector2.new(x + PAD + 4, y + ROW_H * 0.5 - 7)
+            ctl.labelTxt.Text = ctl.label
+            ctl.labelTxt.Visible = true
+            ctl.selTxt.Text = ctl.options[ctl.value] or ""
+            ctl.selTxt.Position = Vector2.new(x + w - 58, y + ROW_H * 0.5 - 7)
+            ctl.selTxt.Visible = true
+            ctl.arrow.Text = ctl.open and "^" or "v"
+            ctl.arrow.Position = Vector2.new(x + w - 16, y + ROW_H * 0.5 - 7)
+            ctl.arrow.Visible = true
+            rows[#rows + 1] = { kind = "dropdown", ctl = ctl, x = x, y = y, w = w, h = ROW_H }
+            y = y + ROW_H
+            if ctl.open then
+                for i = 1, #ctl.options do
+                    local oy = y + (i - 1) * ROW_H
+                    local bg = ctl.optBgs[i]
+                    bg.Position = Vector2.new(x + 8, oy)
+                    bg.Size = Vector2.new(w - 8, ROW_H)
+                    bg.Color = (i == ctl.value) and Color3.fromRGB(46, 80, 56) or Color3.fromRGB(26, 26, 26)
+                    bg.Visible = true
+                    local ot = ctl.optTexts[i]
+                    ot.Position = Vector2.new(x + 18, oy + ROW_H * 0.5 - 7)
+                    ot.Visible = true
+                    rows[#rows + 1] = { kind = "opt", ctl = ctl, idx = i, x = x + 8, y = oy, w = w - 8, h = ROW_H }
+                end
+                y = y + #ctl.options * ROW_H
+            end
+        end
+    end
+    DrawUI.bg.Size = Vector2.new(w, y - DrawUI.y)
+    DrawUI.rows = rows
+    DrawUI.dirty = false
+end
+
+function DrawUI.init(title)
+    DrawUI.titleText = title
+    DrawUI.bg = newSquare(Color3.fromRGB(16, 16, 16), 0.25, true)
+    DrawUI.title = newText(title, 14, Color3.fromRGB(255, 255, 255), true)
+    DrawUI.closeX = newText("X", 14, Color3.fromRGB(255, 90, 90), true)
+    DrawUI.reopenTxt = newText("MENU", 13, Color3.fromRGB(255, 255, 255), true)
+    DrawUI.reopenBg = newSquare(Color3.fromRGB(30, 30, 30), 0.15, true)
+    DrawUI.reopenBorder = newSquare(Color3.fromRGB(90, 220, 120), 0, false)
+    DrawUI.reopenBorder.Thickness = 1.5
+    local cam = workspace:FindFirstChild("Camera")
+    local vp = cam and cam.ViewportSize or Vector2.new(1920, 1080)
+    DrawUI.x = (vp.X - DrawUI.w) * 0.5
+    DrawUI.y = (vp.Y - 160) * 0.5
+    DrawUI.dirty = true
+end
+
+function DrawUI.handleClick(mx, my)
+    if not DrawUI.running or not DrawUI.rows then return end
+    for _, r in ipairs(DrawUI.rows) do
+        if mx >= r.x and mx <= r.x + r.w and my >= r.y and my <= r.y + r.h then
+            if r.kind == "reopen" then
+                DrawUI.visible = true
+                DrawUI.draw()
+            elseif r.kind == "close" then
+                DrawUI.visible = false
+                DrawUI.draw()
+            elseif r.kind == "title" then
+                DrawUI.drag = { ox = mx - DrawUI.x, oy = my - DrawUI.y }
+            elseif r.kind == "toggle" then
+                r.ctl.value = not r.ctl.value
+                DrawUI.draw()
+            elseif r.kind == "dropdown" then
+                r.ctl.open = not r.ctl.open
+                DrawUI.draw()
+            elseif r.kind == "opt" then
+                r.ctl.value = r.idx
+                r.ctl.open = false
+                DrawUI.draw()
+            end
+            return
+        end
+    end
+end
+
+task.spawn(function()
+    local lastDown = false
+    while DrawUI.running do
+        local down = false
+        pcall(function() down = ismouse1pressed() end)
+        if DrawUI.drag then
+            if down then
+                local m = lp:GetMouse()
+                if m then
+                    DrawUI.x = m.X - DrawUI.drag.ox
+                    DrawUI.y = m.Y - DrawUI.drag.oy
+                    DrawUI.draw()
+                end
+            else
+                DrawUI.drag = nil
+            end
+        end
+        if down and not lastDown then
+            local m = lp:GetMouse()
+            if m then DrawUI.handleClick(m.X, m.Y) end
+        end
+        lastDown = down
+        task.wait(0.05)
+    end
+end)
+
+task.spawn(function()
+    while DrawUI.running do
+        if DrawUI.dirty then
+            DrawUI.draw()
+            DrawUI.dirty = false
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- ===== BUILD MENU =====
+DrawUI.init("Mine a Mountain ESP")
+DrawUI.toggle("ore_enabled", "Ore ESP", true)
+DrawUI.toggle("boulder_enabled", "Boulder ESP", true)
+DrawUI.dropdown("ore_range", "Ore Range", { "200", "350", "500", "750", "1000" }, 2)
+DrawUI.dropdown("boulder_range", "Boulder Range", { "200", "350", "500", "750", "1000" }, 2)
+DrawUI.dropdown("ore_rarity", "Ore Rarity", { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }, 1)
+
+local menuKeyConn
+local function stopUI()
+    DrawUI.running = false
+    if menuKeyConn then menuKeyConn:Disconnect() end
+    for _, o in ipairs(DrawUI.allObjs) do
+        pcall(function() o:Remove() end)
+    end
+end
+_G.espUI = { stop = stopUI }
+
+-- ===== CRYSTAL ESP =====
 do
-    local RANGE = 350
     local POOL = 64
-    local TOGGLE = Enum.KeyCode.G.Value
-    local enabled = true
-    local running = true
-    local lastToggle = 0
     local nodes = {}
     local pool = {}
     local conn
-    local keyConn
-    local hud
+    local running = true
     local tierColor = {}
     local tierColorReady = false
-
-    hud = Drawing.new("Text")
-    hud.Size = 14
-    hud.Position = Vector2.new(10, 8)
-    hud.Outline = true
-
-    local function setHud()
-        if enabled then
-            hud.Text = "G | ORE ESP: ON"
-            hud.Color = Color3.fromRGB(120, 255, 120)
-        else
-            hud.Text = "G |ORE ESP: OFF"
-            hud.Color = Color3.fromRGB(255, 120, 120)
-        end
-    end
-    setHud()
-
-    local function toggle()
-        local now = tick()
-        if now - lastToggle < 0.2 then return end
-        lastToggle = now
-        enabled = not enabled
-        setHud()
-    end
 
     for i = 1, POOL do
         local box = Drawing.new("Square")
@@ -95,7 +355,9 @@ do
             local out = {}
             local Things = game.Workspace:FindFirstChild("Things")
             local Crystals = Things and Things:FindFirstChild("Crystals")
-            if Crystals then
+            if Crystals and DrawUI.val("ore_enabled", true) then
+                local range = tonumber(DrawUI.option("ore_range", "350")) or 350
+                local filter = DrawUI.option("ore_rarity", "All")
                 if not tierColorReady then
                     for _, c in ipairs(Crystals:GetChildren()) do
                         local t = c:GetAttribute("Tier")
@@ -107,7 +369,7 @@ do
                         end
                         local seen = 0
                         for _ in pairs(tierColor) do seen = seen + 1 end
-                        if seen >= 5 then break end
+                        if seen >= 6 then break end
                     end
                     tierColorReady = true
                 end
@@ -118,7 +380,11 @@ do
                     local pos = c.Position
                     if myPos then
                         local d = (pos - myPos).Magnitude
-                        if d > RANGE + 60 then continue end
+                        if d > range + 60 then continue end
+                    end
+                    if filter ~= "All" then
+                        local tn = c:GetAttribute("TierName")
+                        if tostring(tn or "") ~= filter then continue end
                     end
                     local cname = c:GetAttribute("CrystalName")
                     local tier = c:GetAttribute("Tier")
@@ -139,20 +405,8 @@ do
         end
     end)
 
-    task.spawn(function()
-        local was = false
-        while running do
-            local down = false
-            local ok, d = pcall(function() return UIS:IsKeyDown(TOGGLE) end)
-            if ok then down = d end
-            if down and not was then toggle() end
-            was = down
-            task.wait(0.1)
-        end
-    end)
-
     conn = RunService.RenderStepped:Connect(function()
-        if not enabled then
+        if not DrawUI.val("ore_enabled", true) then
             for i = 1, POOL do
                 pool[i].box.Visible = false
                 pool[i].tag.Visible = false
@@ -188,16 +442,10 @@ do
         end
     end)
 
-    keyConn = UIS.InputBegan:Connect(function(input)
-        if input.KeyCode == TOGGLE then toggle() end
-    end)
-
     local function stop()
         if not running then return end
         running = false
         if conn then conn:Disconnect() end
-        if keyConn then keyConn:Disconnect() end
-        if hud then hud:Remove() end
         for i = 1, POOL do
             pool[i].box:Remove()
             pool[i].tag:Remove()
@@ -207,19 +455,13 @@ do
     _G.oreEsp = { stop = stop }
 end
 
--- ===== BOULDER ESP (toggle: H) =====
+-- ===== BOULDER ESP =====
 do
-    local RANGE = 350
     local POOL = 32
-    local TOGGLE = Enum.KeyCode.H.Value
-    local enabled = true
-    local running = true
-    local lastToggle = 0
     local nodes = {}
     local pool = {}
     local conn
-    local keyConn
-    local hud
+    local running = true
 
     local rarityColor = {
         Common = Color3.fromRGB(180, 210, 150),
@@ -229,30 +471,6 @@ do
         Legendary = Color3.fromRGB(255, 150, 90),
         Mythic = Color3.fromRGB(255, 90, 90),
     }
-
-    hud = Drawing.new("Text")
-    hud.Size = 14
-    hud.Position = Vector2.new(10, 28)
-    hud.Outline = true
-
-    local function setHud()
-        if enabled then
-            hud.Text = "H | BOULDER ESP: ON"
-            hud.Color = Color3.fromRGB(120, 255, 120)
-        else
-            hud.Text = "H | BOULDER ESP: OFF"
-            hud.Color = Color3.fromRGB(255, 120, 120)
-        end
-    end
-    setHud()
-
-    local function toggle()
-        local now = tick()
-        if now - lastToggle < 0.2 then return end
-        lastToggle = now
-        enabled = not enabled
-        setHud()
-    end
 
     for i = 1, POOL do
         local box = Drawing.new("Square")
@@ -275,7 +493,8 @@ do
             if not B then
                 B = game.Workspace:FindFirstChild("BoulderTest")
             end
-            if B then
+            if B and DrawUI.val("boulder_enabled", true) then
+                local range = tonumber(DrawUI.option("boulder_range", "350")) or 350
                 local char = lp.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 local myPos = root and root.Position
@@ -313,7 +532,7 @@ do
                     local h = maxY - minY
                     if myPos then
                         local d = (Vector3.new(cx, cy, cz) - myPos).Magnitude
-                        if d > RANGE + 60 then continue end
+                        if d > range + 60 then continue end
                     end
                     local rarity = b:GetAttribute("Rarity")
                     local rarityTxt = rarity and tostring(rarity) or ""
@@ -331,20 +550,8 @@ do
         end
     end)
 
-    task.spawn(function()
-        local was = false
-        while running do
-            local down = false
-            local ok, d = pcall(function() return UIS:IsKeyDown(TOGGLE) end)
-            if ok then down = d end
-            if down and not was then toggle() end
-            was = down
-            task.wait(0.1)
-        end
-    end)
-
     conn = RunService.RenderStepped:Connect(function()
-        if not enabled then
+        if not DrawUI.val("boulder_enabled", true) then
             for i = 1, POOL do
                 pool[i].box.Visible = false
                 pool[i].tag.Visible = false
@@ -368,7 +575,7 @@ do
                 d.box.Size = Vector2.new(w, h)
                 d.box.Color = e.color
                 d.box.Visible = true
-                    d.tag.Text = e.rarity ~= "" and (e.name .. " (" .. e.rarity .. ")") or e.name
+                d.tag.Text = e.rarity ~= "" and (e.name .. " (" .. e.rarity .. ")") or e.name
                 d.tag.Position = Vector2.new(top.X, top.Y - 14)
                 d.tag.Color = e.color
                 d.tag.Visible = true
@@ -380,16 +587,10 @@ do
         end
     end)
 
-    keyConn = UIS.InputBegan:Connect(function(input)
-        if input.KeyCode == TOGGLE then toggle() end
-    end)
-
     local function stop()
         if not running then return end
         running = false
         if conn then conn:Disconnect() end
-        if keyConn then keyConn:Disconnect() end
-        if hud then hud:Remove() end
         for i = 1, POOL do
             pool[i].box:Remove()
             pool[i].tag:Remove()
@@ -399,4 +600,11 @@ do
     _G.boulderEsp = { stop = stop }
 end
 
-notify("Enjoy <3", "Mine A Mountain ESP", 4)
+menuKeyConn = UIS.InputBegan:Connect(function(input)
+    if input and input.KeyCode == 0x23 then
+        DrawUI.visible = not DrawUI.visible
+        DrawUI.draw()
+    end
+end)
+
+notify("Enjoy <3", "", 4)
