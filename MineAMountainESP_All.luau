@@ -120,13 +120,17 @@ do
                         local d = (pos - myPos).Magnitude
                         if d > RANGE + 60 then continue end
                     end
+                    local cname = c:GetAttribute("CrystalName")
                     local tier = c:GetAttribute("Tier")
+                    local r = c:GetAttribute("TierColorR")
+                    local g = c:GetAttribute("TierColorG")
+                    local b = c:GetAttribute("TierColorB")
                     out[#out + 1] = {
                         pos = pos,
                         h = (c.Size.Y or 3) + 2,
-                        name = tostring(c:GetAttribute("CrystalName")),
+                        name = (cname and cname ~= "" and tostring(cname)) or c.Name,
                         value = tostring(c:GetAttribute("Value") or ""),
-                        color = tierColor[tier] or Color3.fromRGB(255, 255, 255),
+                        color = tierColor[tier] or Color3.fromRGB(r or 255, g or 255, b or 255),
                     }
                 end
             end
@@ -311,13 +315,14 @@ do
                         local d = (Vector3.new(cx, cy, cz) - myPos).Magnitude
                         if d > RANGE + 60 then continue end
                     end
-                    local rarity = tostring(b:GetAttribute("Rarity"))
+                    local rarity = b:GetAttribute("Rarity")
+                    local rarityTxt = rarity and tostring(rarity) or ""
                     out[#out + 1] = {
                         pos = Vector3.new(cx, cy, cz),
                         h = h,
                         name = tostring(name),
-                        rarity = rarity,
-                        color = rarityColor[rarity] or Color3.fromRGB(255, 225, 160),
+                        rarity = rarityTxt,
+                        color = rarityColor[rarityTxt] or Color3.fromRGB(255, 225, 160),
                     }
                 end
             end
@@ -363,7 +368,7 @@ do
                 d.box.Size = Vector2.new(w, h)
                 d.box.Color = e.color
                 d.box.Visible = true
-                d.tag.Text = e.name .. " (" .. e.rarity .. ")"
+                    d.tag.Text = e.rarity ~= "" and (e.name .. " (" .. e.rarity .. ")") or e.name
                 d.tag.Position = Vector2.new(top.X, top.Y - 14)
                 d.tag.Color = e.color
                 d.tag.Visible = true
