@@ -315,7 +315,7 @@ DrawUI.toggle("ore_enabled", "Ore ESP", true)
 DrawUI.toggle("boulder_enabled", "Boulder ESP", true)
 DrawUI.dropdown("ore_range", "Ore Range", { "200", "350", "500", "750", "1000" }, 2)
 DrawUI.dropdown("boulder_range", "Boulder Range", { "200", "350", "500", "750", "1000" }, 2)
-DrawUI.dropdown("ore_rarity", "Ore Rarity", { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }, 1)
+DrawUI.dropdown("ore_rarity", "Ore Rarity", { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Empyrean", "Pulsar", "Quasar" }, 1)
 
 local menuKeyConn
 local function stopUI()
@@ -369,7 +369,7 @@ do
                         end
                         local seen = 0
                         for _ in pairs(tierColor) do seen = seen + 1 end
-                        if seen >= 6 then break end
+                        if seen >= 9 then break end
                     end
                     tierColorReady = true
                 end
@@ -470,6 +470,9 @@ do
         Epic = Color3.fromRGB(210, 150, 255),
         Legendary = Color3.fromRGB(255, 150, 90),
         Mythic = Color3.fromRGB(255, 90, 90),
+        Empyrean = Color3.fromRGB(255, 225, 150),
+        Pulsar = Color3.fromRGB(90, 210, 255),
+        Quasar = Color3.fromRGB(255, 90, 220),
     }
 
     for i = 1, POOL do
