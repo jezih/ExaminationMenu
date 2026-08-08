@@ -275,15 +275,15 @@ end
 
 task.spawn(function()
     local lastDown = false
+    local mouse = lp:GetMouse()
     while DrawUI.running do
         local down = false
         pcall(function() down = ismouse1pressed() end)
         if DrawUI.drag then
             if down then
-                local m = lp:GetMouse()
-                if m then
-                    DrawUI.x = m.X - DrawUI.drag.ox
-                    DrawUI.y = m.Y - DrawUI.drag.oy
+                if mouse then
+                    DrawUI.x = mouse.X - DrawUI.drag.ox
+                    DrawUI.y = mouse.Y - DrawUI.drag.oy
                     DrawUI.draw()
                 end
             else
@@ -291,8 +291,7 @@ task.spawn(function()
             end
         end
         if down and not lastDown then
-            local m = lp:GetMouse()
-            if m then DrawUI.handleClick(m.X, m.Y) end
+            if mouse then DrawUI.handleClick(mouse.X, mouse.Y) end
         end
         lastDown = down
         task.wait(0.05)
@@ -376,11 +375,16 @@ do
                 local char = lp.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 local myPos = root and root.Position
+                local myPosX, myPosY, myPosZ = myPos and myPos.X, myPos and myPos.Y, myPos and myPos.Z
+                local myPosNum = myPos and true or false
                 for _, c in ipairs(Crystals:GetChildren()) do
                     local pos = c.Position
-                    if myPos then
-                        local d = (pos - myPos).Magnitude
-                        if d > range + 60 then continue end
+                    local d = 0
+                    if myPosNum then
+                        d = (pos.X - myPosX) * (pos.X - myPosX)
+                            + (pos.Y - myPosY) * (pos.Y - myPosY)
+                            + (pos.Z - myPosZ) * (pos.Z - myPosZ)
+                        if d > (range + 60) * (range + 60) then continue end
                     end
                     if filter ~= "All" then
                         local tn = c:GetAttribute("TierName")
@@ -391,13 +395,19 @@ do
                     local r = c:GetAttribute("TierColorR")
                     local g = c:GetAttribute("TierColorG")
                     local b = c:GetAttribute("TierColorB")
+                    local name = (cname and cname ~= "" and tostring(cname)) or c.Name
+                    local value = tostring(c:GetAttribute("Value") or "")
                     out[#out + 1] = {
                         pos = pos,
+                        d = d,
                         h = (c.Size.Y or 3) + 2,
-                        name = (cname and cname ~= "" and tostring(cname)) or c.Name,
-                        value = tostring(c:GetAttribute("Value") or ""),
+                        tag = name .. " " .. value,
                         color = tierColor[tier] or Color3.fromRGB(r or 255, g or 255, b or 255),
                     }
+                end
+                if #out > POOL then
+                    table.sort(out, function(a, b) return a.d < b.d end)
+                    for i = POOL + 1, #out do out[i] = nil end
                 end
             end
             nodes = out
@@ -430,7 +440,7 @@ do
                 d.box.Size = Vector2.new(w, h)
                 d.box.Color = e.color
                 d.box.Visible = true
-                d.tag.Text = e.name .. " " .. e.value
+                d.tag.Text = e.tag
                 d.tag.Position = Vector2.new(top.X, top.Y - 14)
                 d.tag.Color = e.color
                 d.tag.Visible = true
@@ -489,6 +499,7 @@ do
     end
 
     task.spawn(function()
+        local bboxCache = {}
         while running do
             local out = {}
             local MD = game.Workspace:FindFirstChild("MountainDecorations")
@@ -498,58 +509,86 @@ do
             end
             if B and DrawUI.val("boulder_enabled", true) then
                 local range = tonumber(DrawUI.option("boulder_range", "350")) or 350
+                local rangeSq = (range + 60) * (range + 60)
                 local char = lp.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 local myPos = root and root.Position
+                local myPosX, myPosY, myPosZ = myPos and myPos.X, myPos and myPos.Y, myPos and myPos.Z
+                local myPosNum = myPos and true or false
+                local live = {}
                 for _, b in ipairs(B:GetChildren()) do
                     local name = b:GetAttribute("BoulderName")
                     if not name then continue end
-                    local minX, minY, minZ = math.huge, math.huge, math.huge
-                    local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
-                    local n = 0
-                    for _, p in ipairs(b:GetChildren()) do
-                        local cn = p.ClassName
-                        if cn == "MeshPart" or cn == "Part" then
-                            local pos = p.Position
-                            if pos.X < minX then minX = pos.X end
-                            if pos.Y < minY then minY = pos.Y end
-                            if pos.Z < minZ then minZ = pos.Z end
-                            if pos.X > maxX then maxX = pos.X end
-                            if pos.Y > maxY then maxY = pos.Y end
-                            if pos.Z > maxZ then maxZ = pos.Z end
-                            n = n + 1
+                    local key = b.Address
+                    local cc = #b:GetChildren()
+                    local bb = bboxCache[key]
+                    if not bb or bb.cc ~= cc then
+                        local minX, minY, minZ = math.huge, math.huge, math.huge
+                        local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
+                        local n = 0
+                        for _, p in ipairs(b:GetChildren()) do
+                            local cn = p.ClassName
+                            if cn == "MeshPart" or cn == "Part" then
+                                local pos = p.Position
+                                if pos.X < minX then minX = pos.X end
+                                if pos.Y < minY then minY = pos.Y end
+                                if pos.Z < minZ then minZ = pos.Z end
+                                if pos.X > maxX then maxX = pos.X end
+                                if pos.Y > maxY then maxY = pos.Y end
+                                if pos.Z > maxZ then maxZ = pos.Z end
+                                n = n + 1
+                            end
                         end
+                        if n == 0 then
+                            local primary = b.PrimaryPart
+                            if not primary then continue end
+                            local pos = primary.Position
+                            local s = primary.Size
+                            minX, maxX = pos.X - s.X * 0.5, pos.X + s.X * 0.5
+                            minY, maxY = pos.Y - s.Y * 0.5, pos.Y + s.Y * 0.5
+                            minZ, maxZ = pos.Z - s.Z * 0.5, pos.Z + s.Z * 0.5
+                        end
+                        bb = {
+                            cc = cc,
+                            cx = (minX + maxX) * 0.5,
+                            cy = (minY + maxY) * 0.5,
+                            cz = (minZ + maxZ) * 0.5,
+                            h = maxY - minY,
+                        }
+                        bboxCache[key] = bb
                     end
-                    if n == 0 then
-                        local primary = b.PrimaryPart
-                        if not primary then continue end
-                        local pos = primary.Position
-                        local s = primary.Size
-                        minX, maxX = pos.X - s.X * 0.5, pos.X + s.X * 0.5
-                        minY, maxY = pos.Y - s.Y * 0.5, pos.Y + s.Y * 0.5
-                        minZ, maxZ = pos.Z - s.Z * 0.5, pos.Z + s.Z * 0.5
-                    end
-                    local cx = (minX + maxX) * 0.5
-                    local cy = (minY + maxY) * 0.5
-                    local cz = (minZ + maxZ) * 0.5
-                    local h = maxY - minY
-                    if myPos then
-                        local d = (Vector3.new(cx, cy, cz) - myPos).Magnitude
-                        if d > range + 60 then continue end
+                    live[#live + 1] = key
+                    local d = 0
+                    if myPosNum then
+                        local dx = bb.cx - myPosX
+                        local dy = bb.cy - myPosY
+                        local dz = bb.cz - myPosZ
+                        d = dx * dx + dy * dy + dz * dz
+                        if d > rangeSq then continue end
                     end
                     local rarity = b:GetAttribute("Rarity")
                     local rarityTxt = rarity and tostring(rarity) or ""
+                    local tag = rarityTxt ~= "" and (tostring(name) .. " (" .. rarityTxt .. ")") or tostring(name)
                     out[#out + 1] = {
-                        pos = Vector3.new(cx, cy, cz),
-                        h = h,
-                        name = tostring(name),
-                        rarity = rarityTxt,
+                        pos = Vector3.new(bb.cx, bb.cy, bb.cz),
+                        d = d,
+                        h = bb.h,
+                        tag = tag,
                         color = rarityColor[rarityTxt] or Color3.fromRGB(255, 225, 160),
                     }
                 end
+                local liveSet = {}
+                for _, k in ipairs(live) do liveSet[k] = true end
+                for k in pairs(bboxCache) do
+                    if not liveSet[k] then bboxCache[k] = nil end
+                end
+                if #out > POOL then
+                    table.sort(out, function(a, b) return a.d < b.d end)
+                    for i = POOL + 1, #out do out[i] = nil end
+                end
             end
             nodes = out
-            task.wait(0.8)
+            task.wait(1.5)
         end
     end)
 
@@ -578,7 +617,7 @@ do
                 d.box.Size = Vector2.new(w, h)
                 d.box.Color = e.color
                 d.box.Visible = true
-                d.tag.Text = e.rarity ~= "" and (e.name .. " (" .. e.rarity .. ")") or e.name
+                d.tag.Text = e.tag
                 d.tag.Position = Vector2.new(top.X, top.Y - 14)
                 d.tag.Color = e.color
                 d.tag.Visible = true
